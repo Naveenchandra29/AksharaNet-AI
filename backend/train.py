@@ -125,3 +125,138 @@ print()
 print(f"Trainable Parameters : {total_parameters:,}")
 
 print("=" * 60)
+# ==========================================================
+# TRAIN FUNCTION
+# ==========================================================
+
+def train_one_epoch(model, loader, optimizer, criterion):
+
+    model.train()
+
+    epoch_loss = 0
+
+    for source, decoder_input, decoder_target in loader:
+
+        source = source.to(DEVICE)
+        decoder_input = decoder_input.to(DEVICE)
+        decoder_target = decoder_target.to(DEVICE)
+
+        optimizer.zero_grad()
+
+        output = model(
+            source,
+            decoder_input,
+            teacher_forcing_ratio=TEACHER_FORCING
+        )
+
+        output = output.reshape(
+            -1,
+            output.shape[-1]
+        )
+
+        decoder_target = decoder_target.reshape(-1)
+
+        loss = criterion(
+            output,
+            decoder_target
+        )
+
+        loss.backward()
+
+        optimizer.step()
+
+        epoch_loss += loss.item()
+
+    return epoch_loss / len(loader)
+# ==========================================================
+# VALIDATION FUNCTION
+# ==========================================================
+
+def validate(model, loader, criterion):
+
+    model.eval()
+
+    epoch_loss = 0
+
+    with torch.no_grad():
+
+        for source, decoder_input, decoder_target in loader:
+
+            source = source.to(DEVICE)
+            decoder_input = decoder_input.to(DEVICE)
+            decoder_target = decoder_target.to(DEVICE)
+
+            output = model(
+                source,
+                decoder_input,
+                teacher_forcing_ratio=0
+            )
+
+            output = output.reshape(
+                -1,
+                output.shape[-1]
+            )
+
+            decoder_target = decoder_target.reshape(-1)
+
+            loss = criterion(
+                output,
+                decoder_target
+            )
+
+            epoch_loss += loss.item()
+
+    return epoch_loss / len(loader)
+# ==========================================================
+# TRAINING LOOP
+# ==========================================================
+
+best_valid_loss = float("inf")
+
+print("\nStarting Training...\n")
+
+start_time = time.time()
+
+for epoch in range(EPOCHS):
+
+    train_loss = train_one_epoch(
+        model,
+        train_loader,
+        optimizer,
+        criterion
+    )
+
+    valid_loss = validate(
+        model,
+        valid_loader,
+        criterion
+    )
+
+    print(
+        f"Epoch [{epoch+1}/{EPOCHS}] | "
+        f"Train Loss: {train_loss:.4f} | "
+        f"Valid Loss: {valid_loss:.4f}"
+    )
+
+    if valid_loss < best_valid_loss:
+
+        best_valid_loss = valid_loss
+
+        os.makedirs("saved_models", exist_ok=True)
+
+        torch.save(
+            model.state_dict(),
+            MODEL_PATH
+        )
+
+        print("✔ Best model saved")
+
+end_time = time.time()
+
+print("\n" + "=" * 60)
+print("Training Completed")
+print("=" * 60)
+
+print(f"Best Validation Loss : {best_valid_loss:.4f}")
+print(f"Training Time : {(end_time-start_time):.2f} seconds")
+print(f"Model Saved : {MODEL_PATH}")

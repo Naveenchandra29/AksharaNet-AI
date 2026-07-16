@@ -178,23 +178,29 @@ class TransliterationDataset(Dataset):
             self.target_words[index]
         )
 
+        decoder_input = target[:-1]
+        decoder_target = target[1:]
+
         return (
-            torch.tensor(source),
-            torch.tensor(target)
+            torch.tensor(source, dtype=torch.long),
+            torch.tensor(decoder_input, dtype=torch.long),
+            torch.tensor(decoder_target, dtype=torch.long),
         )
-    # ==========================================================
+# ==========================================================
 # COLLATE FUNCTION
 # ==========================================================
 
 def collate_batch(batch):
 
     source_batch = []
-    target_batch = []
+    decoder_input_batch = []
+    decoder_target_batch = []
 
-    for source, target in batch:
+    for source, decoder_input, decoder_target in batch:
 
         source_batch.append(source)
-        target_batch.append(target)
+        decoder_input_batch.append(decoder_input)
+        decoder_target_batch.append(decoder_target)
 
     source_batch = torch.nn.utils.rnn.pad_sequence(
         source_batch,
@@ -202,18 +208,23 @@ def collate_batch(batch):
         padding_value=0
     )
 
-    target_batch = torch.nn.utils.rnn.pad_sequence(
-        target_batch,
+    decoder_input_batch = torch.nn.utils.rnn.pad_sequence(
+        decoder_input_batch,
         batch_first=True,
         padding_value=0
     )
 
-    return source_batch, target_batch
-# ==========================================================
-# DATALOADER
-# ==========================================================
+    decoder_target_batch = torch.nn.utils.rnn.pad_sequence(
+        decoder_target_batch,
+        batch_first=True,
+        padding_value=0
+    )
 
-
+    return (
+        source_batch,
+        decoder_input_batch,
+        decoder_target_batch,
+    )
 # ==========================================================
 # CREATE TRAIN / VALID / TEST DATALOADERS
 # ==========================================================
@@ -311,13 +322,23 @@ if __name__ == "__main__":
 
     print()
 
-    source, target = next(iter(train_loader))
+    source, decoder_input, decoder_target = next(iter(train_loader))
 
-    print("Source Shape :", source.shape)
-    print("Target Shape :", target.shape)
+print("Source Shape        :", source.shape)
+print("Decoder Input Shape :", decoder_input.shape)
+print("Decoder Target Shape:", decoder_target.shape)
 
-    print()
+print()
 
-    print(source[0])
+print("Source:")
+print(source[0])
 
-    print(target[0])
+print()
+
+print("Decoder Input:")
+print(decoder_input[0])
+
+print()
+
+print("Decoder Target:")
+print(decoder_target[0])

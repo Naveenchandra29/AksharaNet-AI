@@ -324,21 +324,21 @@ if __name__ == "__main__":
 
     source, decoder_input, decoder_target = next(iter(train_loader))
 
-print("Source Shape        :", source.shape)
-print("Decoder Input Shape :", decoder_input.shape)
-print("Decoder Target Shape:", decoder_target.shape)
+    print("Source Shape        :", source.shape)
+    print("Decoder Input Shape :", decoder_input.shape)
+    print("Decoder Target Shape:", decoder_target.shape)
 
-print()
+    print()
 
-print("Source:")
-print(source[0])
+    print("Source:")
+    print(source[0])
 
-print()
+    print()
 
-print("Decoder Input:")
-print(decoder_input[0])
+    print("Decoder Input:")
+    print(decoder_input[0])
 
-print()
+    print()
 
-print("Decoder Target:")
-print(decoder_target[0])
+    print("Decoder Target:")
+    print(decoder_target[0])

@@ -205,6 +205,44 @@ class Seq2Seq(nn.Module):
             target_vocab_size,
             device=self.device
         )
+    def predict(
+    self,
+    source,
+    max_length=30
+    ):
+
+        self.eval()
+
+        predictions = []
+
+        with torch.no_grad():
+
+            _, hidden = self.encoder(source)
+
+            input_token = torch.tensor(
+                [1],  # <SOS>
+                device=self.device
+            )
+
+            for _ in range(max_length):
+
+                output, hidden = self.decoder(
+                    input_token,
+                    hidden
+                )
+
+                predicted_token = output.argmax(1)
+
+                token = predicted_token.item()
+
+                if token == 2:      # <EOS>
+                    break
+
+                predictions.append(token)
+
+                input_token = predicted_token
+
+        return predictions    
 
         # --------------------------
         # Encoder

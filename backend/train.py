@@ -1,17 +1,10 @@
-"""
-train.py
-
-Training pipeline for the Character-Level Seq2Seq
-Transliteration Model.
-"""
-
 import os
 import time
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
+import pickle
 from dataset import create_dataloaders
 from model import Encoder
 from model import Decoder
@@ -36,7 +29,7 @@ BATCH_SIZE = 32
 
 LEARNING_RATE = 0.001
 
-EPOCHS = 20
+EPOCHS = 1
 
 TEACHER_FORCING = 0.5
 
@@ -246,10 +239,24 @@ for epoch in range(EPOCHS):
 
         torch.save(
             model.state_dict(),
-            MODEL_PATH
+            MODEL_PATH 
         )
 
-        print("✔ Best model saved")
+        with open(
+            "saved_models/source_vocab.pkl",
+            "wb"
+        ) as file:
+
+            pickle.dump(source_vocab, file)
+
+        with open(
+            "saved_models/target_vocab.pkl",
+            "wb"
+        ) as file:
+
+            pickle.dump(target_vocab, file)
+
+        print("✔ Best model and vocabularies saved")
 
 end_time = time.time()
 

@@ -167,24 +167,23 @@ class Decoder(nn.Module):
         )
 
         return prediction, hidden
-    # ==========================================================
+# ==========================================================
 # SEQ2SEQ
 # ==========================================================
 
 class Seq2Seq(nn.Module):
 
-    def __init__(
-        self,
-        encoder,
-        decoder,
-        device
-    ):
+    def __init__(self, encoder, decoder, device):
 
         super().__init__()
 
         self.encoder = encoder
         self.decoder = decoder
         self.device = device
+
+    # ------------------------------------------------------
+    # TRAINING
+    # ------------------------------------------------------
 
     def forward(
         self,
@@ -205,10 +204,40 @@ class Seq2Seq(nn.Module):
             target_vocab_size,
             device=self.device
         )
+
+        _, hidden = self.encoder(source)
+
+        input_token = target[:, 0]
+
+        for t in range(1, target_length):
+
+            prediction, hidden = self.decoder(
+                input_token,
+                hidden
+            )
+
+            outputs[:, t, :] = prediction
+
+            teacher_force = random.random() < teacher_forcing_ratio
+
+            top_prediction = prediction.argmax(1)
+
+            input_token = (
+                target[:, t]
+                if teacher_force
+                else top_prediction
+            )
+
+        return outputs
+
+    # ------------------------------------------------------
+    # INFERENCE
+    # ------------------------------------------------------
+
     def predict(
-    self,
-    source,
-    max_length=30
+        self,
+        source,
+        max_length=30
     ):
 
         self.eval()
@@ -220,7 +249,7 @@ class Seq2Seq(nn.Module):
             _, hidden = self.encoder(source)
 
             input_token = torch.tensor(
-                [1],  # <SOS>
+                [1],
                 device=self.device
             )
 
@@ -235,15 +264,14 @@ class Seq2Seq(nn.Module):
 
                 token = predicted_token.item()
 
-                if token == 2:      # <EOS>
+                if token == 2:
                     break
 
                 predictions.append(token)
 
                 input_token = predicted_token
 
-        return predictions    
-
+        return predictions
         # --------------------------
         # Encoder
         # --------------------------

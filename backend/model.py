@@ -1,16 +1,14 @@
 """
 model.py
 
-Character-level Seq2Seq model for transliteration.
-
+Character-level Seq2Seq Model
 Supports:
 - RNN
-- LSTM
 - GRU
+- LSTM
 """
 
 import random
-
 import torch
 import torch.nn as nn
 
@@ -60,7 +58,7 @@ class Encoder(nn.Module):
                 dropout=dropout if num_layers > 1 else 0
             )
 
-        else:
+        elif self.cell_type == "LSTM":
 
             self.rnn = nn.LSTM(
                 embedding_dim,
@@ -68,6 +66,12 @@ class Encoder(nn.Module):
                 num_layers=num_layers,
                 batch_first=True,
                 dropout=dropout if num_layers > 1 else 0
+            )
+
+        else:
+
+            raise ValueError(
+                "cell_type must be RNN, GRU or LSTM"
             )
 
     def forward(self, source):
@@ -122,7 +126,7 @@ class Decoder(nn.Module):
                 dropout=dropout if num_layers > 1 else 0
             )
 
-        else:
+        elif self.cell_type == "LSTM":
 
             self.rnn = nn.LSTM(
                 embedding_dim,
@@ -130,6 +134,12 @@ class Decoder(nn.Module):
                 num_layers=num_layers,
                 batch_first=True,
                 dropout=dropout if num_layers > 1 else 0
+            )
+
+        else:
+
+            raise ValueError(
+                "cell_type must be RNN, GRU or LSTM"
             )
 
         self.fc = nn.Linear(
@@ -142,13 +152,6 @@ class Decoder(nn.Module):
         input_token,
         hidden
     ):
-        """
-        input_token:
-            (batch_size)
-
-        hidden:
-            Hidden state from encoder or previous decoder step.
-        """
 
         input_token = input_token.unsqueeze(1)
 
@@ -165,7 +168,7 @@ class Decoder(nn.Module):
 
         return prediction, hidden
     # ==========================================================
-# SEQ2SEQ MODEL
+# SEQ2SEQ
 # ==========================================================
 
 class Seq2Seq(nn.Module):
@@ -174,7 +177,7 @@ class Seq2Seq(nn.Module):
         self,
         encoder,
         decoder,
-        device,
+        device
     ):
 
         super().__init__()
@@ -187,19 +190,12 @@ class Seq2Seq(nn.Module):
         self,
         source,
         target,
-        teacher_forcing_ratio=0.5,
+        teacher_forcing_ratio=0.5
     ):
-        """
-        source : (batch_size, source_length)
-        target : (batch_size, target_length)
 
-        Returns:
-            outputs : (batch_size, target_length, target_vocab_size)
-        """
+        batch_size = source.size(0)
 
-        batch_size = source.shape[0]
-
-        target_length = target.shape[1]
+        target_length = target.size(1)
 
         target_vocab_size = self.decoder.fc.out_features
 
@@ -210,36 +206,90 @@ class Seq2Seq(nn.Module):
             device=self.device
         )
 
-        # -----------------------------
+        # --------------------------
         # Encoder
-        # -----------------------------
+        # --------------------------
 
         _, hidden = self.encoder(source)
 
         # First decoder input = <SOS>
         input_token = target[:, 0]
 
-        # -----------------------------
+        # --------------------------
         # Decoder
-        # -----------------------------
+        # --------------------------
 
-        for timestep in range(1, target_length):
+        for t in range(1, target_length):
 
             prediction, hidden = self.decoder(
                 input_token,
                 hidden
             )
 
-            outputs[:, timestep] = prediction
+            outputs[:, t, :] = prediction
 
             teacher_force = random.random() < teacher_forcing_ratio
 
-            predicted_token = prediction.argmax(1)
+            top_prediction = prediction.argmax(1)
 
             input_token = (
-                target[:, timestep]
+                target[:, t]
                 if teacher_force
-                else predicted_token
+                else top_prediction
             )
 
         return outputs
+    # ==========================================================
+# TEST
+# ==========================================================
+
+if __name__ == "__main__":
+
+    device = torch.device("cpu")
+
+    encoder = Encoder(
+        input_dim=30,
+        embedding_dim=64,
+        hidden_dim=128,
+        num_layers=1,
+        cell_type="LSTM"
+    )
+
+    decoder = Decoder(
+        output_dim=68,
+        embedding_dim=64,
+        hidden_dim=128,
+        num_layers=1,
+        cell_type="LSTM"
+    )
+
+    model = Seq2Seq(
+        encoder,
+        decoder,
+        device
+    )
+
+    source = torch.randint(
+        0,
+        30,
+        (4, 12)
+    )
+
+    target = torch.randint(
+        0,
+        68,
+        (4, 15)
+    )
+
+    output = model(
+        source,
+        target
+    )
+
+    print("=" * 50)
+    print("Seq2Seq Model Ready")
+    print("=" * 50)
+
+    print("Input Shape :", source.shape)
+    print("Target Shape :", target.shape)
+    print("Output Shape :", output.shape)

@@ -145,29 +145,123 @@ def build_vocabularies():
         train_target,
     )
 # ==========================================================
+# PYTORCH DATASET
+# ==========================================================
+
+class TransliterationDataset(Dataset):
+
+    def __init__(
+        self,
+        source_words,
+        target_words,
+        source_vocab,
+        target_vocab
+    ):
+
+        self.source_words = source_words
+        self.target_words = target_words
+
+        self.source_vocab = source_vocab
+        self.target_vocab = target_vocab
+
+    def __len__(self):
+
+        return len(self.source_words)
+
+    def __getitem__(self, index):
+
+        source = self.source_vocab.encode(
+            self.source_words[index]
+        )
+
+        target = self.target_vocab.encode(
+            self.target_words[index]
+        )
+
+        return (
+            torch.tensor(source),
+            torch.tensor(target)
+        )
+    # ==========================================================
+# COLLATE FUNCTION
+# ==========================================================
+
+def collate_batch(batch):
+
+    source_batch = []
+    target_batch = []
+
+    for source, target in batch:
+
+        source_batch.append(source)
+        target_batch.append(target)
+
+    source_batch = torch.nn.utils.rnn.pad_sequence(
+        source_batch,
+        batch_first=True,
+        padding_value=0
+    )
+
+    target_batch = torch.nn.utils.rnn.pad_sequence(
+        target_batch,
+        batch_first=True,
+        padding_value=0
+    )
+
+    return source_batch, target_batch
+# ==========================================================
+# DATALOADER
+# ==========================================================
+
+def create_dataloader(
+    batch_size=32,
+):
+
+    source_vocab, target_vocab, source, target = build_vocabularies()
+
+    dataset = TransliterationDataset(
+        source,
+        target,
+        source_vocab,
+        target_vocab
+    )
+
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        collate_fn=collate_batch
+    )
+
+    return (
+        loader,
+        source_vocab,
+        target_vocab
+    )
+# ==========================================================
 # TEST
 # ==========================================================
 
 if __name__ == "__main__":
 
-    source_vocab, target_vocab, source, target = build_vocabularies()
+    loader, source_vocab, target_vocab = create_dataloader()
 
     print("=" * 50)
-    print("Dataset Loaded Successfully")
+    print("Dataset Ready")
     print("=" * 50)
 
-    print(f"Training Samples : {len(source)}")
-    print(f"Source Vocabulary : {len(source_vocab)}")
-    print(f"Target Vocabulary : {len(target_vocab)}")
+    print("Source Vocabulary :", len(source_vocab))
+    print("Target Vocabulary :", len(target_vocab))
 
     print()
 
-    print("Example")
+    source, target = next(iter(loader))
+
+    print("Source Shape :", source.shape)
+    print("Target Shape :", target.shape)
+
+    print()
 
     print(source[0])
 
     print(target[0])
-
-    print(source_vocab.encode(source[0]))
-
-    print(target_vocab.encode(target[0]))

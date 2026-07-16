@@ -103,3 +103,71 @@ class Vocabulary:
     def __len__(self):
 
         return len(self.char2idx)
+    # ==========================================================
+# DATASET LOADER
+# ==========================================================
+
+def load_data(file_path):
+    """
+    Load transliteration pairs from a CSV file.
+
+    Returns:
+        source_words : List[str]
+        target_words : List[str]
+    """
+
+    dataframe = pd.read_csv(
+        file_path,
+        header=None,
+        names=["source", "target"]
+    )
+
+    source_words = dataframe["source"].astype(str).tolist()
+    target_words = dataframe["target"].astype(str).tolist()
+
+    return source_words, target_words
+
+
+def build_vocabularies():
+
+    train_source, train_target = load_data(TRAIN_FILE)
+
+    source_vocab = Vocabulary()
+    target_vocab = Vocabulary()
+
+    source_vocab.build(train_source)
+    target_vocab.build(train_target)
+
+    return (
+        source_vocab,
+        target_vocab,
+        train_source,
+        train_target,
+    )
+# ==========================================================
+# TEST
+# ==========================================================
+
+if __name__ == "__main__":
+
+    source_vocab, target_vocab, source, target = build_vocabularies()
+
+    print("=" * 50)
+    print("Dataset Loaded Successfully")
+    print("=" * 50)
+
+    print(f"Training Samples : {len(source)}")
+    print(f"Source Vocabulary : {len(source_vocab)}")
+    print(f"Target Vocabulary : {len(target_vocab)}")
+
+    print()
+
+    print("Example")
+
+    print(source[0])
+
+    print(target[0])
+
+    print(source_vocab.encode(source[0]))
+
+    print(target_vocab.encode(target[0]))

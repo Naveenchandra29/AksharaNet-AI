@@ -213,28 +213,77 @@ def collate_batch(batch):
 # DATALOADER
 # ==========================================================
 
-def create_dataloader(
-    batch_size=32,
-):
 
-    source_vocab, target_vocab, source, target = build_vocabularies()
+# ==========================================================
+# CREATE TRAIN / VALID / TEST DATALOADERS
+# ==========================================================
 
-    dataset = TransliterationDataset(
-        source,
-        target,
+def create_dataloaders(batch_size=32):
+
+    # ---------- Training ----------
+
+    train_source, train_target = load_data(TRAIN_FILE)
+
+    source_vocab = Vocabulary()
+    target_vocab = Vocabulary()
+
+    source_vocab.build(train_source)
+    target_vocab.build(train_target)
+
+    train_dataset = TransliterationDataset(
+        train_source,
+        train_target,
         source_vocab,
         target_vocab
     )
 
-    loader = DataLoader(
-        dataset,
+    train_loader = DataLoader(
+        train_dataset,
         batch_size=batch_size,
         shuffle=True,
         collate_fn=collate_batch
     )
 
+    # ---------- Validation ----------
+
+    valid_source, valid_target = load_data(VALID_FILE)
+
+    valid_dataset = TransliterationDataset(
+        valid_source,
+        valid_target,
+        source_vocab,
+        target_vocab
+    )
+
+    valid_loader = DataLoader(
+        valid_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        collate_fn=collate_batch
+    )
+
+    # ---------- Test ----------
+
+    test_source, test_target = load_data(TEST_FILE)
+
+    test_dataset = TransliterationDataset(
+        test_source,
+        test_target,
+        source_vocab,
+        target_vocab
+    )
+
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        collate_fn=collate_batch
+    )
+
     return (
-        loader,
+        train_loader,
+        valid_loader,
+        test_loader,
         source_vocab,
         target_vocab
     )
@@ -244,18 +293,25 @@ def create_dataloader(
 
 if __name__ == "__main__":
 
-    loader, source_vocab, target_vocab = create_dataloader()
+    (
+        train_loader,
+        valid_loader,
+        test_loader,
+        source_vocab,
+        target_vocab
+    ) = create_dataloaders()
 
     print("=" * 50)
     print("Dataset Ready")
     print("=" * 50)
 
-    print("Source Vocabulary :", len(source_vocab))
-    print("Target Vocabulary :", len(target_vocab))
+    print("Train Batches :", len(train_loader))
+    print("Valid Batches :", len(valid_loader))
+    print("Test Batches  :", len(test_loader))
 
     print()
 
-    source, target = next(iter(loader))
+    source, target = next(iter(train_loader))
 
     print("Source Shape :", source.shape)
     print("Target Shape :", target.shape)
